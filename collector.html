@@ -1,0 +1,663 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>采集端 - 加油机自动检定监控</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0a0e17;
+    color: #e8edf5;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Header */
+  .header {
+    background: linear-gradient(135deg, #1a2332, #0d2847);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid #1e3a5f;
+    flex-shrink: 0;
+  }
+  .header .title {
+    font-size: 15px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .header .title .dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: blink 1.5s infinite;
+  }
+  .header .title .dot.online { background: #10b981; }
+  @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .header .status {
+    font-size: 12px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.1);
+  }
+  .header .status.connected { background: rgba(16,185,129,0.2); color: #34d399; }
+  .header .status.disconnected { background: rgba(239,68,68,0.2); color: #f87171; }
+
+  /* Video area */
+  .video-area {
+    flex: 1;
+    position: relative;
+    background: #000;
+    overflow: hidden;
+  }
+  .video-area video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+  .video-area .placeholder {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    color: #5a6b87;
+  }
+  .video-area .placeholder .icon { font-size: 48px; margin-bottom: 8px; }
+  .video-area .placeholder p { font-size: 14px; }
+
+  /* Caliper reading overlay */
+  .caliper-overlay {
+    position: absolute;
+    top: 12px; right: 12px;
+    background: rgba(0,0,0,0.7);
+    border: 2px solid #ef4444;
+    border-radius: 8px;
+    padding: 8px 14px;
+    display: none;
+  }
+  .caliper-overlay.show { display: block; }
+  .caliper-overlay .label { font-size: 11px; color: #f87171; margin-bottom: 2px; }
+  .caliper-overlay .value {
+    font-size: 22px;
+    font-weight: 800;
+    color: #ef4444;
+    font-family: "Courier New", monospace;
+    text-shadow: 0 0 8px rgba(239,68,68,0.5);
+  }
+  .caliper-overlay .unit { font-size: 14px; color: #f87171; }
+
+  /* Recording indicator */
+  .rec-indicator {
+    position: absolute;
+    top: 12px; left: 12px;
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: rgba(0,0,0,0.6);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 12px;
+    color: #ef4444;
+    font-weight: 600;
+  }
+  .rec-indicator.show { display: flex; }
+  .rec-indicator .rec-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    animation: blink 1s infinite;
+  }
+
+  /* Device info overlay */
+  .device-info {
+    position: absolute;
+    bottom: 12px; left: 12px;
+    background: rgba(0,0,0,0.6);
+    padding: 6px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    color: #8899b0;
+    display: none;
+  }
+  .device-info.show { display: block; }
+
+  /* Controls */
+  .controls {
+    background: #111827;
+    padding: 12px 16px 20px;
+    border-top: 1px solid #1e3a5f;
+    flex-shrink: 0;
+  }
+  .control-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .control-row:last-child { margin-bottom: 0; }
+
+  .btn {
+    flex: 1;
+    padding: 12px 8px;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+    color: white;
+  }
+  .btn:active { transform: scale(0.96); }
+  .btn-primary { background: #2563eb; }
+  .btn-primary.active { background: #10b981; }
+  .btn-danger { background: #ef4444; }
+  .btn-secondary { background: #374151; }
+  .btn-small { flex: none; padding: 8px 14px; font-size: 12px; }
+
+  /* PTT button */
+  .ptt-area {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+  .ptt-btn {
+    width: 60px; height: 60px;
+    border-radius: 50%;
+    border: 3px solid #374151;
+    background: #1f2937;
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .ptt-btn:active, .ptt-btn.active {
+    background: #ef4444;
+    border-color: #ef4444;
+    color: white;
+    transform: scale(1.08);
+  }
+  .ptt-label {
+    font-size: 12px;
+    color: #6b7280;
+  }
+  .ptt-label .hint {
+    font-size: 11px;
+    color: #4b5563;
+  }
+
+  /* Toggle switch */
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+  }
+  .toggle-row .label { font-size: 13px; color: #9ca3af; }
+  .toggle {
+    width: 44px; height: 24px;
+    background: #374151;
+    border-radius: 12px;
+    position: relative;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .toggle.on { background: #2563eb; }
+  .toggle::after {
+    content: '';
+    position: absolute;
+    width: 20px; height: 20px;
+    background: white;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 22px; }
+
+  /* Settings panel */
+  .settings-panel {
+    display: none;
+    background: #111827;
+    padding: 16px;
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    border-radius: 16px 16px 0 0;
+    border-top: 1px solid #1e3a5f;
+    max-height: 60vh;
+    overflow-y: auto;
+    z-index: 50;
+  }
+  .settings-panel.show { display: block; }
+  .settings-panel h3 {
+    font-size: 15px;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .settings-panel h3 .close {
+    cursor: pointer;
+    font-size: 20px;
+    color: #6b7280;
+  }
+  .setting-group {
+    margin-bottom: 16px;
+  }
+  .setting-group label {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+  }
+  .setting-group select, .setting-group input {
+    width: 100%;
+    padding: 10px;
+    background: #1f2937;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    color: #e8edf5;
+    font-size: 14px;
+  }
+
+  /* Modal overlay */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 40;
+  }
+  .modal-overlay.show { display: block; }
+
+  /* Log area */
+  .log-area {
+    background: #0a0e17;
+    border: 1px solid #1e3a5f;
+    border-radius: 8px;
+    padding: 10px;
+    max-height: 120px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 8px;
+  }
+  .log-area .log-item { margin-bottom: 2px; }
+  .log-area .log-item.success { color: #34d399; }
+  .log-area .log-item.error { color: #f87171; }
+  .log-area .log-item.info { color: #60a5fa; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="title">
+    <span class="dot" id="statusDot"></span>
+    加油机检定 · 采集端
+  </div>
+  <div class="status disconnected" id="statusBadge">未连接</div>
+</div>
+
+<!-- Video Area -->
+<div class="video-area" id="videoArea">
+  <video id="localVideo" autoplay muted playsinline></video>
+  <div class="placeholder" id="placeholder">
+    <div class="icon">📹</div>
+    <p>点击下方「开启摄像头」开始采集</p>
+  </div>
+
+  <!-- Caliper reading -->
+  <div class="caliper-overlay" id="caliperOverlay">
+    <div class="label">游标卡尺读数</div>
+    <div class="value" id="caliperValue">--</div>
+    <div class="unit">mm</div>
+  </div>
+
+  <!-- Recording indicator -->
+  <div class="rec-indicator" id="recIndicator">
+    <span class="rec-dot"></span>
+    采集中
+  </div>
+
+  <!-- Device info -->
+  <div class="device-info" id="deviceInfo"></div>
+</div>
+
+<!-- Controls -->
+<div class="controls">
+  <!-- Main buttons -->
+  <div class="control-row">
+    <button class="btn btn-primary" id="btnCamera" onclick="toggleCamera()">
+      📹 开启摄像头
+    </button>
+    <button class="btn btn-secondary btn-small" id="btnSwitch" onclick="switchCamera()" style="display:none;">
+      🔄
+    </button>
+  </div>
+
+  <!-- PTT -->
+  <div class="ptt-area" id="pttArea" style="display:none;">
+    <button class="ptt-btn" id="pttBtn"
+      onpointerdown="startTalk()"
+      onpointerup="stopTalk()"
+      onpointerleave="stopTalk()">
+      PTT
+    </button>
+    <div class="ptt-label">
+      按住说话
+      <div class="hint">对准蓝牙音箱输出</div>
+    </div>
+  </div>
+
+  <!-- Feature toggles -->
+  <div class="control-row" id="featureRow" style="display:none;">
+    <button class="btn btn-secondary btn-small" onclick="toggleFlash()">🔦 闪光</button>
+    <button class="btn btn-secondary btn-small" onclick="toggleCaliper()">📏 卡尺</button>
+    <button class="btn btn-secondary btn-small" onclick="toggleSettings()">⚙️ 设置</button>
+  </div>
+</div>
+
+<!-- Settings Panel -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeSettings()"></div>
+<div class="settings-panel" id="settingsPanel">
+  <h3>
+    设置
+    <span class="close" onclick="closeSettings()">✕</span>
+  </h3>
+
+  <div class="setting-group">
+    <label>设备名称</label>
+    <input type="text" id="deviceName" value="采集端-1" placeholder="给设备起个名字">
+  </div>
+
+  <div class="setting-group">
+    <label>视频分辨率</label>
+    <select id="resolution">
+      <option value="640x480">640x480（流畅）</option>
+      <option value="1280x720" selected>1280x720（高清）</option>
+      <option value="1920x1080">1920x1080（超清）</option>
+    </select>
+  </div>
+
+  <div class="setting-group">
+    <label>视频帧率</label>
+    <select id="framerate">
+      <option value="15">15 fps</option>
+      <option value="24" selected>24 fps</option>
+      <option value="30">30 fps</option>
+    </select>
+  </div>
+
+  <div class="toggle-row">
+    <span class="label">卡尺识别（模拟）</span>
+    <div class="toggle" id="toggleCaliper" onclick="toggleCaliperSetting()"></div>
+  </div>
+
+  <div class="toggle-row">
+    <span class="label">自动连接蓝牙音箱</span>
+    <div class="toggle" id="toggleBT" onclick="this.classList.toggle('on')"></div>
+  </div>
+
+  <div style="margin-top: 16px;">
+    <button class="btn btn-primary" onclick="applySettings()">应用设置</button>
+  </div>
+
+  <div class="log-area" id="logArea">
+    <div class="log-item info">系统就绪</div>
+  </div>
+</div>
+
+<script>
+// State
+let stream = null;
+let isFrontCamera = true;
+let isFlashOn = false;
+let isCaliperOn = false;
+let isTalking = false;
+let caliperInterval = null;
+let mediaRecorder = null;
+let audioContext = null;
+
+// Elements
+const localVideo = document.getElementById('localVideo');
+const placeholder = document.getElementById('placeholder');
+const statusDot = document.getElementById('statusDot');
+const statusBadge = document.getElementById('statusBadge');
+const caliperOverlay = document.getElementById('caliperOverlay');
+const caliperValue = document.getElementById('caliperValue');
+const recIndicator = document.getElementById('recIndicator');
+const deviceInfo = document.getElementById('deviceInfo');
+
+// Log
+function log(msg, type = '') {
+  const area = document.getElementById('logArea');
+  const item = document.createElement('div');
+  item.className = 'log-item ' + type;
+  item.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  area.appendChild(item);
+  area.scrollTop = area.scrollHeight;
+  console.log(msg);
+}
+
+// Toggle camera
+async function toggleCamera() {
+  const btn = document.getElementById('btnCamera');
+  if (stream) {
+    // Stop
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+    localVideo.srcObject = null;
+    placeholder.style.display = '';
+    recIndicator.classList.remove('show');
+    deviceInfo.classList.remove('show');
+    btn.textContent = '📹 开启摄像头';
+    btn.classList.remove('active');
+    document.getElementById('btnSwitch').style.display = 'none';
+    document.getElementById('pttArea').style.display = 'none';
+    document.getElementById('featureRow').style.display = 'none';
+    statusDot.classList.remove('online');
+    statusBadge.textContent = '未连接';
+    statusBadge.className = 'status disconnected';
+    if (caliperInterval) { clearInterval(caliperInterval); caliperInterval = null; }
+    log('摄像头已关闭', 'info');
+  } else {
+    // Start
+    try {
+      const resSel = document.getElementById('resolution').value.split('x');
+      const fps = parseInt(document.getElementById('framerate').value);
+      const constraints = {
+        video: {
+          width: { ideal: parseInt(resSel[0]) },
+          height: { ideal: parseInt(resSel[1]) },
+          frameRate: { ideal: fps },
+          facingMode: isFrontCamera ? 'user' : 'environment'
+        },
+        audio: true
+      };
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      localVideo.srcObject = stream;
+      placeholder.style.display = 'none';
+      recIndicator.classList.add('show');
+
+      btn.textContent = '⏹ 关闭摄像头';
+      btn.classList.add('active');
+      document.getElementById('btnSwitch').style.display = '';
+      document.getElementById('pttArea').style.display = 'flex';
+      document.getElementById('featureRow').style.display = 'flex';
+
+      statusDot.classList.add('online');
+      statusBadge.textContent = '采集中';
+      statusBadge.className = 'status connected';
+
+      // Show device info
+      const track = stream.getVideoTracks()[0];
+      const settings = track.getSettings();
+      deviceInfo.innerHTML = `${settings.width || '?'}x${settings.height || '?'} · ${settings.frameRate || '?'}fps`;
+      deviceInfo.classList.add('show');
+
+      log('摄像头已开启 ' + settings.width + 'x' + settings.height, 'success');
+
+      // Auto caliper
+      if (document.getElementById('toggleCaliper').classList.contains('on')) {
+        startCaliper();
+      }
+    } catch (err) {
+      log('摄像头开启失败: ' + err.message, 'error');
+      alert('无法开启摄像头：' + err.message + '\n\n请确保已授权摄像头和麦克风权限');
+    }
+  }
+}
+
+// Switch camera
+async function switchCamera() {
+  isFrontCamera = !isFrontCamera;
+  if (stream) {
+    stream.getTracks().forEach(t => t.stop());
+    stream = null;
+    await toggleCamera();
+    log('已切换到' + (isFrontCamera ? '前置' : '后置') + '摄像头', 'info');
+  }
+}
+
+// Flash
+async function toggleFlash() {
+  if (!stream) return;
+  const track = stream.getVideoTracks()[0];
+  try {
+    const capabilities = track.getCapabilities();
+    if (capabilities.torch) {
+      isFlashOn = !isFlashOn;
+      await track.applyConstraints({ advanced: [{ torch: isFlashOn }] });
+      log(isFlashOn ? '闪光灯已开启' : '闪光灯已关闭', 'info');
+    } else {
+      log('此设备不支持闪光灯控制', 'error');
+    }
+  } catch (err) {
+    log('闪光灯控制失败: ' + err.message, 'error');
+  }
+}
+
+// Caliper recognition (simulated)
+function toggleCaliper() {
+  if (isCaliperOn) {
+    stopCaliper();
+  } else {
+    startCaliper();
+  }
+}
+
+function startCaliper() {
+  if (!stream) { log('请先开启摄像头', 'error'); return; }
+  isCaliperOn = true;
+  caliperOverlay.classList.add('show');
+  document.getElementById('toggleCaliper').classList.add('on');
+  log('卡尺识别已启动', 'success');
+
+  // Simulated reading updates
+  caliperInterval = setInterval(() => {
+    const baseReading = 23.40;
+    const variation = (Math.random() - 0.5) * 0.06;
+    const reading = (baseReading + variation).toFixed(2);
+    caliperValue.textContent = reading;
+  }, 2000);
+  // Initial reading
+  caliperValue.textContent = '23.42';
+}
+
+function stopCaliper() {
+  isCaliperOn = false;
+  if (caliperInterval) { clearInterval(caliperInterval); caliperInterval = null; }
+  caliperOverlay.classList.remove('show');
+  document.getElementById('toggleCaliper').classList.remove('on');
+  log('卡尺识别已关闭', 'info');
+}
+
+function toggleCaliperSetting() {
+  const toggle = document.getElementById('toggleCaliper');
+  toggle.classList.toggle('on');
+  if (toggle.classList.contains('on') && stream && !isCaliperOn) {
+    startCaliper();
+  } else if (!toggle.classList.contains('on') && isCaliperOn) {
+    stopCaliper();
+  }
+}
+
+// PTT
+function startTalk() {
+  if (!stream) return;
+  const btn = document.getElementById('pttBtn');
+  btn.classList.add('active');
+  isTalking = true;
+  log('开始对讲...', 'info');
+
+  // Visual feedback - audio plays through Bluetooth if connected
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+  } catch(e) {}
+}
+
+function stopTalk() {
+  const btn = document.getElementById('pttBtn');
+  btn.classList.remove('active');
+  isTalking = false;
+  log('对讲结束', 'info');
+}
+
+// Settings
+function toggleSettings() {
+  document.getElementById('settingsPanel').classList.add('show');
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeSettings() {
+  document.getElementById('settingsPanel').classList.remove('show');
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function applySettings() {
+  const name = document.getElementById('deviceName').value || '采集端-1';
+  log('设置已应用，设备名: ' + name, 'success');
+  closeSettings();
+}
+
+// Auto-start hint
+log('加油机自动检定监控 · 采集端已就绪', 'info');
+log('请点击「开启摄像头」开始', 'info');
+
+// Request permissions on page load
+document.addEventListener('click', async function initAudio() {
+  try {
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioContext.state === 'suspended') {
+      await audioContext.resume();
+    }
+  } catch(e) {}
+  document.removeEventListener('click', initAudio);
+}, { once: false });
+</script>
+
+</body>
+</html>
