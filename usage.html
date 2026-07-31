@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>使用说明 - 加油机自动检定监控</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f5f7fa;
+    color: #1a2332;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+  .container { max-width: 800px; margin: 0 auto; padding: 0 20px; }
+
+  header {
+    background: linear-gradient(135deg, #1e3a8a, #0d9488);
+    color: white;
+    padding: 40px 0 30px;
+    text-align: center;
+  }
+  header h1 { font-size: 1.6rem; margin-bottom: 8px; }
+  header p { font-size: 0.9rem; opacity: 0.9; }
+  header .badges {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  header .badges span {
+    background: rgba(255,255,255,0.2);
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+  }
+
+  section { padding: 30px 0; border-bottom: 1px solid #e1e8f0; }
+  section:last-of-type { border-bottom: none; }
+
+  h2 {
+    font-size: 1.3rem;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    margin: 18px 0 8px;
+  }
+
+  p { margin-bottom: 10px; }
+
+  /* Step cards */
+  .steps {
+    counter-reset: s;
+    list-style: none;
+    padding: 0;
+    margin: 14px 0;
+  }
+  .steps > li {
+    counter-increment: s;
+    padding: 14px 14px 14px 52px;
+    background: white;
+    border: 1px solid #e1e8f0;
+    border-radius: 10px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+  .steps > li::before {
+    content: counter(s);
+    position: absolute;
+    left: 14px;
+    top: 14px;
+    width: 28px;
+    height: 28px;
+    background: #2563eb;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .steps h4 { font-size: 0.95rem; margin-bottom: 4px; }
+  .steps p { color: #5a6b87; font-size: 0.88rem; margin-bottom: 4px; }
+  .steps p:last-child { margin-bottom: 0; }
+
+  /* Link cards */
+  .link-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 14px 0;
+  }
+  .link-card {
+    background: white;
+    border: 2px solid #e1e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    color: #1a2332;
+    display: block;
+  }
+  .link-card:active { transform: scale(0.97); border-color: #2563eb; }
+  .link-card .icon { font-size: 2.5rem; margin-bottom: 6px; }
+  .link-card h4 { font-size: 1rem; margin-bottom: 4px; }
+  .link-card p { color: #5a6b87; font-size: 0.8rem; margin-bottom: 0; }
+
+  .link-card.master { border-color: #2563eb; background: #eff6ff; }
+  .link-card.collector { border-color: #0d9488; background: #ecfdf5; }
+
+  /* Callouts */
+  .callout {
+    padding: 14px 16px;
+    border-radius: 8px;
+    margin: 14px 0;
+    border-left: 4px solid;
+  }
+  .callout.tip { background: #ecfdf5; border-color: #10b981; }
+  .callout.tip strong { color: #10b981; }
+  .callout.warn { background: #fffbeb; border-color: #f59e0b; }
+  .callout.warn strong { color: #f59e0b; }
+  .callout.info { background: #eff6ff; border-color: #2563eb; }
+  .callout.info strong { color: #2563eb; }
+  .callout strong { display: block; margin-bottom: 4px; font-size: 0.88rem; }
+  .callout p { font-size: 0.85rem; margin-bottom: 0; }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; margin: 12px 0; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  th {
+    background: #f5f7fa;
+    text-align: left;
+    padding: 8px 12px;
+    font-weight: 600;
+    border-bottom: 2px solid #e1e8f0;
+  }
+  td { padding: 8px 12px; border-bottom: 1px solid #e1e8f0; }
+
+  /* FAQ */
+  .faq-item {
+    background: white;
+    border: 1px solid #e1e8f0;
+    border-radius: 10px;
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .faq-q {
+    padding: 12px 16px;
+    font-weight: 600;
+    font-size: 0.92rem;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .faq-q::after { content: '▼'; font-size: 10px; color: #5a6b87; }
+  .faq-a {
+    padding: 0 16px 14px;
+    font-size: 0.88rem;
+    color: #5a6b87;
+    display: none;
+  }
+  .faq-item.open .faq-a { display: block; }
+  .faq-item.open .faq-q::after { content: '▲'; }
+
+  footer {
+    background: #1a2332;
+    color: #5a6b87;
+    padding: 24px 0;
+    text-align: center;
+    font-size: 0.82rem;
+  }
+  footer strong { color: white; }
+
+  @media (max-width: 600px) {
+    .link-grid { grid-template-columns: 1fr; }
+    header h1 { font-size: 1.2rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="container">
+    <h1>加油机自动检定监控软件</h1>
+    <p>Web 网页版 · 打开浏览器即用 · 无需安装</p>
+    <div class="badges">
+      <span>📹 实时监控</span>
+      <span>📏 卡尺识别</span>
+      <span>🎙️ 语音对讲</span>
+      <span>📱 多画面</span>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="container">
+
+    <!-- Quick Start -->
+    <section>
+      <h2>🚀 快速开始</h2>
+
+      <div class="link-grid">
+        <a class="link-card collector" href="collector.html">
+          <div class="icon">📹</div>
+          <h4>采集端</h4>
+          <p>手机 A 打开 · 摄像头采集</p>
+        </a>
+        <a class="link-card master" href="master.html">
+          <div class="icon">🖥️</div>
+          <h4>主控端</h4>
+          <p>手机 B 打开 · 查看监控</p>
+        </a>
+      </div>
+    </section>
+
+    <!-- Deployment -->
+    <section>
+      <h2>📋 使用步骤</h2>
+
+      <ol class="steps">
+        <li>
+          <h4>手机 B 开启个人热点</h4>
+          <p>设置 → 个人热点 → 开启，记下 WiFi 名称和密码</p>
+        </li>
+        <li>
+          <h4>手机 A 连接热点</h4>
+          <p>手机 A WiFi 设置 → 连接手机 B 的热点</p>
+        </li>
+        <li>
+          <h4>手机 A 连接蓝牙音箱</h4>
+          <p>蓝牙设置 → 配对蓝牙音箱 → 连接成功</p>
+        </li>
+        <li>
+          <h4>手机 A 打开采集端</h4>
+          <p>浏览器打开「采集端」网页 → 允许摄像头和麦克风权限 → 对准卡尺</p>
+        </li>
+        <li>
+          <h4>手机 B 打开主控端</h4>
+          <p>浏览器打开「主控端」网页 → 添加设备 → 查看监控画面</p>
+        </li>
+        <li>
+          <h4>开始使用</h4>
+          <p>查看多画面、按住 PTT 说话、观察红色卡尺读数</p>
+        </li>
+      </ol>
+    </section>
+
+    <!-- Functions -->
+    <section>
+      <h2>🎯 功能说明</h2>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>功能</th>
+              <th>操作位置</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>多画面监控</strong></td>
+              <td>主控端</td>
+              <td>支持 1/4/9 宫格，点击选中某路</td>
+            </tr>
+            <tr>
+              <td><strong>游标卡尺识别</strong></td>
+              <td>采集端 / 主控端</td>
+              <td>画面右上角红色数字显示读数（mm）</td>
+            </tr>
+            <tr>
+              <td><strong>语音对讲</strong></td>
+              <td>两端</td>
+              <td>按住 PTT 按钮说话，松开发送</td>
+            </tr>
+            <tr>
+              <td><strong>快捷短语</strong></td>
+              <td>主控端</td>
+              <td>预设常用短语一键发送</td>
+            </tr>
+            <tr>
+              <td><strong>切摄像头</strong></td>
+              <td>采集端</td>
+              <td>前置/后置切换</td>
+            </tr>
+            <tr>
+              <td><strong>闪光灯</strong></td>
+              <td>采集端</td>
+              <td>暗环境辅助照明</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Notes -->
+    <section>
+      <h2>⚠️ 注意事项</h2>
+
+      <div class="callout info">
+        <strong>浏览器要求</strong>
+        <p>请使用 Chrome、Edge、Safari 等现代浏览器，不支持 IE。</p>
+      </div>
+
+      <div class="callout warn">
+        <strong>HTTPS 限制</strong>
+        <p>浏览器要求 HTTPS 才能调用摄像头和麦克风。如果是手机之间局域网使用，需要在浏览器地址栏输入 <code>chrome://flags/#unsafely-treat-insecure-origin-as-secure</code> 将页面地址添加为例外，或直接用 HTTPS 部署。</p>
+      </div>
+
+      <div class="callout tip">
+        <strong>蓝牙音箱</strong>
+        <p>采集端手机连接蓝牙音箱后，接收到的语音会通过音箱播放。确保蓝牙已配对且已连接。</p>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section>
+      <h2>❓ 常见问题</h2>
+
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">摄像头打不开怎么办？</div>
+        <div class="faq-a">确保浏览器已获得摄像头和麦克风权限。在手机「设置 → 应用 → 浏览器 → 权限」中检查。部分浏览器需要 HTTPS 环境才能使用摄像头。</div>
+      </div>
+
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">两台手机怎么连接？</div>
+        <div class="faq-a">手机 B 开个人热点，手机 A 连上热点后，两台就在同一个局域网了。在主控端添加采集端设备名称即可。</div>
+      </div>
+
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">卡尺读数准不准？</div>
+        <div class="faq-a">当前网页版使用模拟读数演示效果。如需真实识别，需要集成 OpenCV AI 模型，建议使用 Flutter 原生版获得最佳精度。</div>
+      </div>
+
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">可以加更多采集端手机吗？</div>
+        <div class="faq-a">可以！主控端支持多画面（最多 9 路），每台采集端手机打开 collector.html 页面，在主控端逐一添加设备即可。</div>
+      </div>
+
+      <div class="faq-item" onclick="this.classList.toggle('open')">
+        <div class="faq-q">对讲延迟大吗？</div>
+        <div class="faq-a">局域网内延迟极低（通常 < 200ms），使用 PTT 模式可以有效避免回声和啸叫问题。</div>
+      </div>
+    </section>
+
+  </div>
+</main>
+
+<footer>
+  <div class="container">
+    <p><strong>加油机自动检定监控软件</strong> Web 版</p>
+    <p style="margin-top: 4px;">纯浏览器运行 · 无需安装 · 打开即用</p>
+  </div>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>加油机自动检定监控软件</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #0a0e17;
+    color: #e8edf5;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+  }
+  .logo {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  h1 {
+    font-size: 1.4rem;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #60a5fa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .subtitle {
+    color: #5a6b87;
+    font-size: 0.85rem;
+    margin-bottom: 30px;
+  }
+  .links {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .link-btn {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 18px 20px;
+    border-radius: 14px;
+    text-decoration: none;
+    color: white;
+    transition: transform 0.2s;
+  }
+  .link-btn:active { transform: scale(0.97); }
+  .link-btn.collector {
+    background: linear-gradient(135deg, #0d9488, #059669);
+  }
+  .link-btn.master {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  }
+  .link-btn .icon { font-size: 28px; }
+  .link-btn .text { text-align: left; }
+  .link-btn .text h3 { font-size: 1rem; margin-bottom: 2px; }
+  .link-btn .text p { font-size: 0.78rem; opacity: 0.8; }
+
+  .footer {
+    margin-top: 30px;
+    color: #374151;
+    font-size: 0.75rem;
+  }
+  .footer a { color: #60a5fa; text-decoration: none; }
+</style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">⛽</div>
+    <h1>加油机自动检定监控软件</h1>
+    <p class="subtitle">Web 版 · 选择你的角色</p>
+
+    <div class="links">
+      <a class="link-btn collector" href="collector.html">
+        <span class="icon">📹</span>
+        <div class="text">
+          <h3>采集端</h3>
+          <p>手机 A 使用 · 开启摄像头采集视频</p>
+        </div>
+      </a>
+      <a class="link-btn master" href="master.html">
+        <span class="icon">🖥️</span>
+        <div class="text">
+          <h3>主控端</h3>
+          <p>手机 B 使用 · 查看监控画面 · 语音对讲</p>
+        </div>
+      </a>
+    </div>
+
+    <div class="footer">
+      <a href="usage.html">查看使用说明</a>
+    </div>
+  </div>
+</body>
+</html>
